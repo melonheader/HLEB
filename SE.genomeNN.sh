@@ -1,7 +1,7 @@
-#!/usr/bin/bash
-### INFO: Count genome N -> N conversions from SE Slamseq
-### DATE: 03.09.2020
-### AUTHOR: Miha Milek, Artem Baranovskii
+#!/usr/bin/env bash
+### INFO: Count genome N -> N conversions from Slamseq bam files
+### DATE: 02.08.2022
+### AUTHOR: Artem Baranovskii, Miha Milek
 
 
 #{SETUP}
@@ -9,48 +9,109 @@ set -e
 # set variables
 # ------------------------------ #
 ## Global
-project="Stability"
-exp="PCN.Slamseq_dnCaf1"
-genome="mm10"
+### Process arguments
+while (( "$#" )); do
+    case "$1" in
+        -h|--help)
+            echo "options:"
+            echo "-h, --help              show brief help"
+            echo "-i, --path_to_bams      path(s) to input bam files"
+            echo "-o, --out_path          specify a directory to write results"
+			echo "-b, --bed_path 		  path to bed with genomic features"
+			echo "-f, --fasta_path        path to genome fasta corresponding to the bed file provided"
+			echo "-n, --n_cores           number of cores to parallelize jobs (default 6)"
+            exit 0
+        ;;
+        -i|--path_to_bams)
+            shift 
+            if test $# -gt 0; then
+                path_to_bams=$1
+            else
+                echo "No input bam files provided"
+				exit 1
+            fi
+            shift
+        ;;
+        -o|--out_path)
+            shift
+            if test $# -gt 0; then
+                out_path=$1
+            else
+                echo "No output dir specified"
+                exit 1
+            fi
+            shift
+		;;
+		-b|--bed_path)
+			shift 
+			if test $# -gt 0; then
+				bed_path=$1
+			else
+				echo "No path to bed file with genomic features provided"
+				exit 1
+			fi
+			shift
+        ;;
+		-f|--fasta_path)
+			shift 
+			if test $# -gt 0; then
+				bed_path=$1
+			else
+				echo "No path to genomic fasta provided"
+				exit 1
+			fi
+			shift
+        ;;
+		-e|--experiment_name)
+			shift 
+			if test $# -gt 0; then
+				experiment_name=$1
+			else 
+				experiment_name="$(date -u +'%d.%m.%Y')_Run"
+			fi
+			shift
+		;;
+		-n|--n_cores)
+			shift
+			if test $# -gt 0; then
+				n_cores=$1
+			else
+				n_cores=6
+			fi
+			shift
+		;;
+        *)
+            echo "bad option"
+            exit 1
+        ;;
+    esac
+done
+
+
+
+#{CONTROL}
 # ----------------------------------------------------------------- #
 ## Paths
-basepath="/local/artem/Projects/"$project"/Data/SequenceData/"$exp
-utr_path="/local/shared_scripts/database/"$genome"/sorted.Mus_musculus.GRCm38.96.3utr.bed"
-gfa_path="/local/shared_scripts/database/"$genome"/Mus_musculus.GRCm38.dna_sm.primary_assembly.fa"
-cntr_path="/local/artem/Scripts/counters"
-wd_path=$basepath"/mapped_reads"
-cnv_path=$basepath"/conversions"
-out_path=$cnv_path"/genomeNN"
-### Extensions
-bam=".bam"
-sam=".sam"
-prefix="sorted.allReads."
-suffix="_Aligned.sortedByCoord.out"
-bed=".bed"
-txt=".txt"
-pileup=".pileup"
+### source location
+source=${BASH_source[0]}
+while [ -L "$source" ]; do # resolve $source until the file is no longer a symlink
+  source_dir=$( cd -P "$( dirname "$source" )" >/dev/null 2>&1 && pwd )
+  source=$(readlink "$source")
+  [[ $source != /* ]] && source=$source_dir/$source # if $source was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+source_dir=$( cd -P "$( dirname "$source" )" >/dev/null 2>&1 && pwd )
 
+### Auxiliary
+cntr_path=$source_dir"/counters"
+cnvs_path=$out_path"/conversions"
+results_path=$cnvs_path"/genomeNN"
 
-# ----------------------------------------------------------------- #
-# Echo settings
-echo "Settings:"
-echo "Project: $project"
-echo "Experiment: $exp"
-echo "Purpose: Count N -> N conversions in .bam files from PE-Slamseq"
-echo ""
-# check for fasta files
-if [[ ! -d "$wd_path" ]]; then
-	echo ""
-	echo "$wd_path"
-	echo "^ folder with .bam files is not found. exiting....."
-	exit 1
+## Check for dirs to write results into
+if [[ ! -d "$cnvs_path" ]]; then
+	mkdir "$cnvs_path"
 fi
-# check for out dir
-if [[ ! -d "$cnv_path" ]]; then
-	mkdir "$cnv_path"
-fi
-if [[ ! -d "$out_path" ]]; then
-	mkdir "$out_path"
+if [[ ! -d "$results_path" ]]; then
+	mkdir "$results_path"
 fi
 # check for .pl counter
 if [[ ! -d "$cntr_path" ]]; then
@@ -61,23 +122,20 @@ if [[ ! -d "$cntr_path" ]]; then
 fi
 
 
-#{CONTROL}
-# get the list of BAMs
-declare -a file_list=()
-while IFS= read -r -d '' file; do
-	file_list=("${file_list[@]}" "$file")
-done < <(find $wd_path -type f -name '*_Aligned.sortedByCoord.out.bam' -print0)
-echo "${#file_list[@]} .bam files found"
-# keep only timepoint 0
-file_sel=$( for i in ${file_list[@]} ; do echo $i ; done | grep "0hrs" )
+# ----------------------------------------------------------------- #
+# Echo settings
+echo "Settings:"
+echo "Experiment: $experiment_name"
+echo "Purpose: Count genome N in .bam files from Single-End Slamseq run"
+echo "${#path_to_bams[@]} .bam files will be processed"
 echo ""
-echo "${#file_sel[@]} .bam files selected"
-# declase a hash of bpairs
-declare -A prs=( ["T"]="A" ["C"]="G" ["G"]="C" ["A"]="T" )
+
 
 
 #{MAIN}
-# define main function $1 - bam_path, $2 - main base, $3 - rev base
+# declase a hash of bpairs
+declare -A prs=( ["T"]="A" ["C"]="G" ["G"]="C" ["A"]="T" )
+# define main function $1 - path to bam file, $2 - main base, $3 - rev base
 countc() {
 	# set process start time
 	s_time="$(date -u +%s)"
@@ -93,33 +151,33 @@ countc() {
 	cd $2
 
 	# +
-	samtools view -f 16 -b -h -L $utr_path $1 | \
-	samtools mpileup -A -B -Q 27 -d 1000000 -f $gfa_path - | \
-	${cntr_path}/row_mpile_coverage_plus_$2$3.pl | \
+	samtools view -f 16 -b -h -L $bed_path $1 | \
+	samtools mpileup -A -B -Q 27 -d 1000000 -f $fasta_path - | \
+	${cntr_path}/row_mpile_coverage_plus_"$2""$3".pl | \
 	awk -v mainbase="$2" -v loopbase="${prs[$2]}" -v base="$3" '($3==loopbase && $5>0){print $1"\t"($2-1)"\t"$2"\t"mainbase""base"\t"$5"\t-";}' > \
-	genome$2$3.$sample_name$bed
+	genome"$2""$3"."$sample_name".bed
 
 	# -
-	samtools view -F 16 -b -h -L $utr_path $1 | \
-	samtools mpileup -A -B -Q 27 -d 1000000 -f $gfa_path - | \
-	${cntr_path}/row_mpile_coverage_plus_$2$3.pl | \
+	samtools view -F 16 -b -h -L $bed_path $1 | \
+	samtools mpileup -A -B -Q 27 -d 1000000 -f $fasta_path - | \
+	${cntr_path}/row_mpile_coverage_plus_"$2""$3".pl | \
 	awk -v mainbase="$2" -v loopbase="${prs[$2]}" -v base="$3" '($3==loopbase && $5>0){print $1"\t"($2-1)"\t"$2"\t"mainbase""base"\t"$5"\t-";}' >> \
-	genome$2$3.$sample_name$bed
+	genome"$2""$3"."$sample_name".bed
 	
 	# filter unique
-	awk '{print $1"_"$2"_"$3"_"$4"_"$5"_"$6,$5}' genome$2$3.$sample_name$bed | \
+	awk '{print $1"_"$2"_"$3"_"$4"_"$5"_"$6,$5}' genome"$2""$3"."$sample_name".bed | \
 	awk '{a[$1]+=$2;}END{for(i in a)print i"\t"a[i];}' | \
 	sed 's/_/\t/g' | \
-	awk '{print $1,$2,$3,$4,$7,$6}' OFS="\t" > uniq.genome$2$3.$sample_name$bed
+	awk '{print $1,$2,$3,$4,$7,$6}' OFS="\t" > uniq.genome"$2""$3"."$sample_name".bed
 
 	# sort
-	sort -k1,1 -k2,2n uniq.genome$2$3.$sample_name$bed > sorted.uniq.genome$2$3.$sample_name$bed
+	sort -k1,1 -k2,2n uniq.genome"$2""$3"."$sample_name".bed > sorted.uniq.genome"$2""$3"."$sample_name".bed
 
 	# quantify conversions per gene
-	intersectBed -s -wa -wb -sorted -a $utr_path -b sorted.uniq.genome$2$3.$sample_name$bed > $2$3.tpu.$sample_name$bed
-	awk '{print $7,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$7}' OFS="\t" $2$3.tpu.$sample_name$bed | \
+	intersectBed -s -wa -wb -sorted -a $bed_path -b sorted.uniq.genome"$2""$3"."$sample_name".bed > "$2""$3".gfeat."$sample_name".bed
+	awk '{print $7,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$7}' OFS="\t" "$2""$3".gfeat."$sample_name".bed | \
 	awk '!seen[$5]++' | \
-	awk '{a[$1]+=$4;}END{for(i in a)print i"\t"a[i];}' > genome$2$3.perGene.$sample_name.txt
+	awk '{a[$1]+=$4;}END{for(i in a)print i"\t"a[i];}' > genome"$2""$3".perGene."$sample_name".txt
 
 	# report
 	e_time="$(date -u +%s)"
@@ -134,16 +192,14 @@ countc() {
 # set total start time
 ts_time="$(date -u +%s)"
 # relocate to the output directory
-cd $out_path
+cd $results_path
 # array of bases to loop over
 ubloop=( "T" 
 	 	 "C"
 	 	 "G"
 	 	 "A" )
-# parallelize over batches of N
-N=4
 # loop over samples
-for x in ${file_sel[@]}; do
+for x in ${path_to_bams[@]}; do
 	# loop over reference bases
 	for y in ${ubloop[@]}; do
 		# create array of substitutions and drop the reference base from this array
@@ -158,11 +214,16 @@ for x in ${file_sel[@]}; do
 		done
 		# loop over subtitutions bases
 		for z in ${lbloop[@]}; do
+			## for timepoints later than 0 only do T -> C
+			timepoint_test=$(grep -q T0 $x)
+			if [ -z $timepoint_test ] && [ $y != "T" ] && [ $z != "C" ]; then
+				continue
+			fi
 			(
 				countc $x $y $z
 			) &
 			# allow parallel execution of only N jobs
-			if [[ $(jobs -r -p | wc -l) -gt $((N - 1)) ]]; then
+			if [[ $(jobs -r -p | wc -l) -gt $((n_cores - 1)) ]]; then
         		# wait a batch to finish
         		wait
     		fi
