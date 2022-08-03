@@ -25,12 +25,22 @@ while (( "$#" )); do
         -i|--path_to_bams)
             shift 
             if test $# -gt 0; then
-                path_to_bams=$1
+                path_to_bams=()
+				args=( "$@" )
+				set -- "${args[@]}"
+				while (( $# )); do
+					if [ ${1:0:1} == "-" ]; then
+						break
+					fi
+					#echo "Path: $1"
+					path_to_bams+=($1)
+					shift
+				done
+				unset args
             else
                 echo "No input bam files provided"
 				exit 1
             fi
-            shift
         ;;
         -o|--out_path)
             shift
@@ -55,7 +65,7 @@ while (( "$#" )); do
 		-f|--fasta_path)
 			shift 
 			if test $# -gt 0; then
-				bed_path=$1
+				fasta_path=$1
 			else
 				echo "No path to genomic fasta provided"
 				exit 1
@@ -80,10 +90,10 @@ while (( "$#" )); do
 			fi
 			shift
 		;;
-        *)
-            echo "bad option"
-            exit 1
-        ;;
+        # *)
+        #     echo "bad option"
+        #     exit 1
+        # ;;
     esac
 done
 

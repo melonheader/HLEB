@@ -26,12 +26,22 @@ while (( "$#" )); do
         -i|--path_to_bams)
             shift 
             if test $# -gt 0; then
-                path_to_bams=$1
+                path_to_bams=()
+				args=( "$@" )
+				set -- "${args[@]}"
+				while (( $# )); do
+					if [ ${1:0:1} == "-" ]; then
+						break
+					fi
+					#echo "Path: $1"
+					path_to_bams+=($1)
+					shift
+				done
+				unset args
             else
                 echo "No input bam files provided"
 				exit 1
             fi
-            shift
         ;;
         -o|--out_path)
             shift
@@ -56,22 +66,22 @@ while (( "$#" )); do
 		-f|--fasta_path)
 			shift 
 			if test $# -gt 0; then
-				bed_path=$1
+				fasta_path=$1
 			else
 				echo "No path to genomic fasta provided"
 				exit 1
 			fi
 			shift
         ;;
-		-e|--experiment_name)
-			shift 
-			if test $# -gt 0; then
-				experiment_name=$1
-			else 
-				experiment_name="$(date -u +'%d.%m.%Y')_Run"
-			fi
-			shift
-		;;
+		# -e|--experiment_name)
+		# 	shift 
+		# 	if test $# -gt 0; then
+		# 		experiment_name=$1
+		# 	else 
+		# 		experiment_name="$(date -u +'%d.%m.%Y')_Run"
+		# 	fi
+		# 	shift
+		# ;;
 		-n|--n_cores)
 			shift
 			if test $# -gt 0; then
@@ -109,10 +119,10 @@ results_path=$cnvs_path"/genomeN"
 
 ## Check for dirs to write results into
 if [[ ! -d "$cnvs_path" ]]; then
-	mkdir "$cnvs_path"
+	mkdir -p "$cnvs_path"
 fi
 if [[ ! -d "$results_path" ]]; then
-	mkdir "$results_path"
+	mkdir -p "$results_path"
 fi
 # check for .pl counter
 if [[ ! -d "$cntr_path" ]]; then
@@ -126,16 +136,13 @@ fi
 # ----------------------------------------------------------------- #
 # Echo settings
 echo "Settings:"
-echo "Experiment: $experiment_name"
 echo "Purpose: Count genome N in .bam files from Single-End Slamseq run"
 echo "${#path_to_bams[@]} .bam files will be processed"
-echo ""
+echo "Output dir: $results_path"
 
 
 
 #{MAIN}
-# declase a hash of bpairs
-declare -A bloop=( ["T"]="t" ["C"]="c" ["G"]="g" ["A"]="a" )
 # define main function $1 - bam_path, $2 - base to count
 countb () {
 	s_time="$(date -u +%s)"
@@ -187,6 +194,8 @@ countb () {
 }
 
 
+# declase a hash of bpairs
+declare -A bloop=( ["T"]="t" ["C"]="c" ["G"]="g" ["A"]="a" )
 # start
 # set total start time
 ts_time="$(date -u +%s)"
@@ -211,5 +220,13 @@ for x in ${path_to_bams[@]}; do
 		fi
 	done
 done
-
-file_sel=$( for i in ${file_list[@]} ; do echo $i ; done | grep T0 )
+# wait for unfinished jobs from the last batch
+wait
+# t report
+te_time="$(date -u +%s)"
+tel_s=$(($te_time - $ts_time))
+tel_time=$(date --date='@'$tel_s +%H:%M:%S)
+echo ""
+echo "${#path_to_bams[@]} files procced"
+echo "Total elapsed time: $tel_time"
+echo "Done!"

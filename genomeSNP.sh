@@ -25,12 +25,22 @@ while (( "$#" )); do
         -i|--path_to_bams)
             shift 
             if test $# -gt 0; then
-                path_to_bams=$1
+                path_to_bams=()
+				args=( "$@" )
+				set -- "${args[@]}"
+				while (( $# )); do
+					if [ ${1:0:1} == "-" ]; then
+						break
+					fi
+					#echo "Path: $1"
+					path_to_bams+=($1)
+					shift
+				done
+				unset args
             else
                 echo "No input bam files provided"
 				exit 1
             fi
-            shift
         ;;
         -o|--out_path)
             shift
@@ -55,7 +65,7 @@ while (( "$#" )); do
 		-f|--fasta_path)
 			shift 
 			if test $# -gt 0; then
-				bed_path=$1
+				fasta_path=$1
 			else
 				echo "No path to genomic fasta provided"
 				exit 1
@@ -118,10 +128,10 @@ results_path=$cnvs_path"/SNPs"
 
 ## Check for dirs to write results into
 if [[ ! -d "$cnvs_path" ]]; then
-	mkdir "$cnvs_path"
+	mkdir -p "$cnvs_path"
 fi
 if [[ ! -d "$results_path" ]]; then
-	mkdir "$results_path"
+	mkdir -p "$results_path"
 fi
 # check for .pl counter
 if [[ ! -d "$cntr_path" ]]; then
@@ -134,12 +144,16 @@ fi
 
 
 
+# ----------------------------------------------------------------- #
+# Echo settings
+echo "Settings:"
+echo "Purpose: Call SNPs from Slamseq run"
+echo "${#path_to_bams[@]} .bam files will be processed"
+echo ""
+
 
 
 #{MAIN}
-# define threshold for varscan
-minVarFreq="0.8"
-minCov="10"
 # define main function $1 - bam_path, $2 - base to count
 call_snp () {
 	s_time="$(date -u +%s)"
@@ -183,6 +197,15 @@ call_snp () {
 	echo "Time elapsed: $el_time"
 }
 
+# define threshold for varscan
+minVarFreq="0.8"
+minCov="10"
+# start
+# set total start time
+ts_time="$(date -u +%s)"
+# relocate to the output directory
+cd $results_path
+# loop over samples
 for x in ${path_to_bams[@]}; do
 	(
 		call_snp $x
@@ -193,7 +216,16 @@ for x in ${path_to_bams[@]}; do
 		wait
 	fi
 done
-
+# wait for unfinished jobs from the last batch
+wait
+# t report
+te_time="$(date -u +%s)"
+tel_s=$(($te_time - $ts_time))
+tel_time=$(date --date='@'$tel_s +%H:%M:%S)
+echo ""
+echo "${#path_to_bams[@]} files procced"
+echo "Total elapsed time: $tel_time"
+echo "Done!"
 
 
 

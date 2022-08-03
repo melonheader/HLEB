@@ -25,12 +25,22 @@ while (( "$#" )); do
         -i|--path_to_bams)
             shift 
             if test $# -gt 0; then
-                path_to_bams=$1
+                path_to_bams=()
+				args=( "$@" )
+				set -- "${args[@]}"
+				while (( $# )); do
+					if [ ${1:0:1} == "-" ]; then
+						break
+					fi
+					#echo "Path: $1"
+					path_to_bams+=($1)
+					shift
+				done
+				unset args
             else
                 echo "No input bam files provided"
 				exit 1
             fi
-            shift
         ;;
         -o|--out_path)
             shift
@@ -55,22 +65,22 @@ while (( "$#" )); do
 		-f|--fasta_path)
 			shift 
 			if test $# -gt 0; then
-				bed_path=$1
+				fasta_path=$1
 			else
 				echo "No path to genomic fasta provided"
 				exit 1
 			fi
 			shift
         ;;
-		-e|--experiment_name)
-			shift 
-			if test $# -gt 0; then
-				experiment_name=$1
-			else 
-				experiment_name="$(date -u +'%d.%m.%Y')_Run"
-			fi
-			shift
-		;;
+		# -e|--experiment_name)
+		# 	shift 
+		# 	if test $# -gt 0; then
+		# 		experiment_name=$1
+		# 	else 
+		# 		experiment_name="$(date -u +'%d.%m.%Y')_Run"
+		# 	fi
+		# 	shift
+		# ;;
 		-n|--n_cores)
 			shift
 			if test $# -gt 0; then
@@ -108,10 +118,10 @@ results_path=$cnvs_path"/genomeNN"
 
 ## Check for dirs to write results into
 if [[ ! -d "$cnvs_path" ]]; then
-	mkdir "$cnvs_path"
+	mkdir -p "$cnvs_path"
 fi
 if [[ ! -d "$results_path" ]]; then
-	mkdir "$results_path"
+	mkdir -p "$results_path"
 fi
 # check for .pl counter
 if [[ ! -d "$cntr_path" ]]; then
@@ -125,16 +135,13 @@ fi
 # ----------------------------------------------------------------- #
 # Echo settings
 echo "Settings:"
-echo "Experiment: $experiment_name"
-echo "Purpose: Count genome N in .bam files from Single-End Slamseq run"
+echo "Purpose: Count genome N -> N conversions in .bam files from Single-End Slamseq run"
 echo "${#path_to_bams[@]} .bam files will be processed"
 echo ""
 
 
 
 #{MAIN}
-# declase a hash of bpairs
-declare -A prs=( ["T"]="A" ["C"]="G" ["G"]="C" ["A"]="T" )
 # define main function $1 - path to bam file, $2 - main base, $3 - rev base
 countc() {
 	# set process start time
@@ -187,7 +194,8 @@ countc() {
 	echo "Time elapsed: $el_time"
 }
 
-
+# declase a hash of bpairs
+declare -A prs=( ["T"]="A" ["C"]="G" ["G"]="C" ["A"]="T" )
 # start
 # set total start time
 ts_time="$(date -u +%s)"
@@ -237,6 +245,6 @@ te_time="$(date -u +%s)"
 tel_s=$(($te_time - $ts_time))
 tel_time=$(date --date='@'$tel_s +%H:%M:%S)
 echo ""
-echo "${#file_sel[@]} files procced"
+echo "${#path_to_bams[@]} files procced"
 echo "Total elapsed time: $tel_time"
 echo "Done!"
