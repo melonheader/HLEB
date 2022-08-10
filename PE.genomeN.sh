@@ -149,7 +149,6 @@ countb () {
 	# get bam basename and sample_name
 	bam_file="$(basename -- $1)"
 	sample_name="${bam_file%_S*}"
-	echo ""
 	echo "Processing sample $sample_name....."
 	echo "Counting $2 background bases....."
 	if [[ ! -d "./$2" ]]; then

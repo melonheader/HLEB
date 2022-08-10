@@ -154,20 +154,20 @@ ts_time="$(date -u +%s)"
 bash "$source_dir"/"$seq_style".genomeN.sh \
 	-i ${path_to_bams[@]} -o "$out_path/$experiment_name" \
 	-b $bed_path -f $fasta_path -n 6 > \
-	"$out_path"/"$seq_style".genomeN.Log &
+	"$out_path"/"$experiment_name"/"$seq_style".genomeN.Log &
 wait
 ## Count base conversions per genomic features
 bash "$source_dir"/"$seq_style".genomeNN.sh \
 	-i ${path_to_bams[@]} -o "$out_path/$experiment_name" \
 	-b $bed_path -f $fasta_path -n 6 > \
-	"$out_path"/"$seq_style".genomeNN.Log &
+	"$out_path"/"$experiment_name"/"$seq_style".genomeNN.Log &
 wait
 ## Count SNPs per genomic feature
 bash "$source_dir"/genomeSNP.sh \
 	-i ${path_to_bams[@]} -o "$out_path/$experiment_name" \
 	-b $bed_path -f $fasta_path -v "/local/artem/Scripts/varscan/VarScan.v2.3.9.jar" \
 	-n 6 > \
-	"$out_path"/genomeSNP.Log &
+	"$out_path"/"$experiment_name"/genomeSNP.Log &
 wait
 # time report
 te_time="$(date -u +%s)"

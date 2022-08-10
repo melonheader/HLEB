@@ -160,7 +160,6 @@ call_snp () {
 	# get bam basename and sample_name
 	bam_file="$(basename -- $1)"
 	sample_name="${bam_file%_S*}"
-	echo ""
 	echo "Processing sample $sample_name....."
 
 	samtools mpileup -B -A -q 255 -f $fasta_path $1 | \

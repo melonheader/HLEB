@@ -150,7 +150,6 @@ countc() {
 	# get bam basename and sample_name
 	bam_file="$(basename -- $1)"
 	sample_name="${bam_file%_S*}"
-	echo ""
 	echo "Processing sample $sample_name....."
 	echo "Counting $2 > $3 conversions....."
 	if [[ ! -d "./$2" ]]; then

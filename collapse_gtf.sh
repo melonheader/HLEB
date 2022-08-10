@@ -16,7 +16,7 @@ fi
 
 cd $out_path
 cat $gtf | \
-awk -v genomic_feature=$feature -v c_offset=$offset 'BEGIN{OFS="\t";} $3==genomic_feature {print $1,$4-1,$5,$(18 + c_offset),1,$7}' | \
+awk -v genomic_feature=$feature -v c_offset=$offset 'BEGIN{OFS="\t";} $3==genomic_feature {print $1,$4-1,$5,$(18 + c_offset),"1",$7}' | \
 tr -d '"|;' | \
 sortBed | \
 mergeBed -s -c 4,6 -o distinct,distinct > "$out_path"/"$out_file"
