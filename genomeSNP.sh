@@ -184,7 +184,7 @@ call_snp () {
 	
 	awk '{print $7,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$7}' OFS="\t" counts.gfeat."$sample_name".bed | \
 	awk '!seen[$5]++' | \
-	awk '{a[$1]+=$4;}END{for(i in a)print i"\t"a[i];}' > countsTC.perGene."$filename".txt
+	awk '{a[$1"_"$2"_"$3]+=$4;}END{for(i in a)print i"\t"a[i];}' > countsTC.perGene."$filename".txt
 
 	rm -f counts."$sample_name".bed
 
