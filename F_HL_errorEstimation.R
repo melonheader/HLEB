@@ -162,7 +162,7 @@ estimate_hl <- function(project,
     return(data_p)
   }
   
-  ## parallel over groups
+  ## parallel over groups --- parallelize over transcripts, not groups
   message("estimating half-lives...")
   tictoc::tic()
   library(doParallel)
@@ -175,12 +175,12 @@ estimate_hl <- function(project,
   tictoc::toc()
   
   
-  # filter junk
-  # for (z in 1:length(hl_l)) {
-  #   message(paste0(length(unique(hl_l[[z]][["trash"]]$gene_id)), " genes have been removed from ", names(hl_l[z])))
-  #   hl_l[[z]] <- hl_l[[z]][["hl"]] %>% dplyr::filter(!gene_id %in% hl_l[[z]][["trash"]]$gene_id)
-  # }
-  # hl <- purrr::reduce(hl_l, rbind)
+  filter junk
+  for (z in 1:length(hl_l)) {
+    message(paste0(length(unique(hl_l[[z]][["trash"]]$gene_id)), " genes have been removed from ", names(hl_l[z])))
+    hl_l[[z]] <- hl_l[[z]][["hl"]] %>% dplyr::filter(!gene_id %in% hl_l[[z]][["trash"]]$gene_id)
+  }
+  hl <- purrr::reduce(hl_l, rbind)
   
   
   # Output
