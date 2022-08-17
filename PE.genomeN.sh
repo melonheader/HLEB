@@ -188,7 +188,7 @@ countb () {
 	intersectBed -s -wa -wb -sorted -a $bed_path -b sorted.cov"$2"."$sample_name".bed > cov"$2".gfeat."$sample_name".bed
 	awk '{print $7,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$7}' OFS="\t" cov"$2".gfeat."$sample_name".bed | \
 	awk '!seen[$5]++' |  \
-	awk '{a[$1"_"$2"_"$3]+=$4;}END{for(i in a)print i"\t"a[i];}' > counts"$2".perGene."$sample_name".txt
+	awk '{a[$1"_"$2]+=$4;}END{for(i in a)print i"\t"a[i];}' > counts"$2".perGene."$sample_name".txt
 
 	# report
 	e_time="$(date -u +%s)"
@@ -209,9 +209,8 @@ cd $results_path
 for x in ${path_to_bams[@]}; do
 	# loop over background bases
 	for y in ${!bloop[@]}; do
-		## for timepoints later than 0 only do T
-		timepoint_test=$(grep -q T0 $x)
-		if [ -z $timepoint_test ] && [ $y != "T" ]; then
+		## for timepoints after 0h only do T
+		if echo $x | grep -q -v T0 && [ $y != "T" ]; then
 			continue
 		fi
 		(

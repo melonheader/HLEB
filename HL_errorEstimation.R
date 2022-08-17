@@ -1,13 +1,32 @@
 
-####################
-### DATE: 15.07.2022
-### INFO: Estimate error of halh-lives
 ######################################
-require(tidyverse)
-require(magrittr)
-require(purrr)
-require(tictoc)
+### DATE: 15.07.2022
+### INFO: Estimate error of half-lives
+######################################
+
+
+
+# {SETUP}
+## Paths
+p.parent.dir <- getwd()
+
+if (!require("tidyverse")) install.packages("tidyverse") else library(tidyverse)
+if (!require("magrittr")) install.packages("magrittr") else library(magrittr)
+if (!require("purrr")) install.packages("purrr") else library(purrr)
+if (!require("tictoc")) install.packages("tictoc") else library(tictoc)
+
+
+
+
+
+
 source("~/Scripts/Notebooks/Stability/Reviews/F_HL_errorEstimation.R")
+
+
+## here goes genomic conversion tables processing....
+
+
+
 
 
 
