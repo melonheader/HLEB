@@ -153,14 +153,14 @@ ts_time="$(date -u +%s)"
 ## Count bases per genomic feature
 bash "$source_dir"/"$seq_style".genomeN.sh \
 	-i ${path_to_bams[@]} -o "$out_path/$experiment_name" \
-	-b $bed_path -f $fasta_path -n 6 > \
+	-b $bed_path -f $fasta_path -n $n_cores > \
 	"$out_path"/"$experiment_name"/"$seq_style".genomeN.Log &
 wait
 sed -i '/mpileup/d' "$out_path"/"$experiment_name"/"$seq_style".genomeN.Log			# remove gibberish from mpileup
 ## Count base conversions per genomic features
 bash "$source_dir"/"$seq_style".genomeNN.sh \
 	-i ${path_to_bams[@]} -o "$out_path/$experiment_name" \
-	-b $bed_path -f $fasta_path -n 6 > \
+	-b $bed_path -f $fasta_path -n $n_cores > \
 	"$out_path"/"$experiment_name"/"$seq_style".genomeNN.Log &
 wait
 sed -i '/mpileup/d' "$out_path"/"$experiment_name"/"$seq_style".genomeNN.Log		# remove gibberish from mpileup
@@ -168,7 +168,7 @@ sed -i '/mpileup/d' "$out_path"/"$experiment_name"/"$seq_style".genomeNN.Log		# 
 bash "$source_dir"/genomeSNP.sh \
 	-i ${path_to_bams[@]} -o "$out_path/$experiment_name" \
 	-b $bed_path -f $fasta_path -v "/local/artem/Scripts/varscan/VarScan.v2.3.9.jar" \
-	-n 6 > \
+	-n $n_cores > \
 	"$out_path"/"$experiment_name"/genomeSNP.Log &
 wait
 sed -i '/mpileup/d' "$out_path"/"$experiment_name"/genomeSNP.Log					# remove gibberish from mpileup
