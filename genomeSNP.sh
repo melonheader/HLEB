@@ -182,9 +182,9 @@ call_snp () {
 	intersectBed -s -wa -wb -sorted -a $bed_path -b sorted.counts."$sample_name".bed | \
 	awk '($6=="+"&&$12=="TC")||($6=="-"&&$12=="AG")' > counts.gfeat."$sample_name".bed
 	
-	awk '{print $7,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$7}' OFS="\t" counts.gfeat."$sample_name".bed | \
+	awk '{print $4,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$8}' OFS="\t" counts.gfeat."$sample_name".bed | \
 	awk '!seen[$5]++' | \
-	awk '{a[$1"_"$2]+=$4;}END{for(i in a)print i"\t"a[i];}' > countsTC.perGene."$filename".txt
+	awk '{a[$1"_"$2]+=$4;}END{for(i in a)print i"\t"a[i];}' > countsTC.perGene."$sample_name".txt
 
 	rm -f counts."$sample_name".bed
 

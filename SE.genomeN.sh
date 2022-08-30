@@ -159,7 +159,7 @@ countb () {
 	# +
 	samtools view -f 16 -b -h -L $bed_path $1 | \
 	samtools mpileup -A -B -Q 1 -d 1000000 -f $fasta_path - | \
-	awk -v base="$2" -v lbase="${bloop[$2]}" '($3==lbase || $3==base){print $1,$2,$3,$4,$5,"-"}' OFS="\t" > \
+	awk -v base="$2" -v lbase="${bloop[$2]}" '($3==lbase || $3==base){print $1,$2,$3,$4,$5,"+"}' OFS="\t" > \
 	cov"$2"."$sample_name".pileup
 	# -
 	samtools view -F 16 -b -h -L $bed_path $1 | \
@@ -180,7 +180,7 @@ countb () {
 
 	# quantify conversions per gene
 	intersectBed -s -wa -wb -sorted -a $bed_path -b sorted.cov"$2"."$sample_name".bed > cov"$2".gfeat."$sample_name".bed
-	awk '{print $7,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$7}' OFS="\t" cov"$2".gfeat."$sample_name".bed | \
+	awk '{print $4,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$8}' OFS="\t" cov"$2".gfeat."$sample_name".bed | \
 	awk '!seen[$5]++' |  \
 	awk '{a[$1"_"$2]+=$4;}END{for(i in a)print i"\t"a[i];}' > counts"$2".perGene."$sample_name".txt
 

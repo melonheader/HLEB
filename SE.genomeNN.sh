@@ -160,7 +160,7 @@ countc() {
 	samtools view -f 16 -b -h -L $bed_path $1 | \
 	samtools mpileup -A -B -Q 27 -d 1000000 -f $fasta_path - | \
 	${cntr_path}/row_mpile_coverage_plus_"$2""$3".pl | \
-	awk -v mainbase="$2" -v loopbase="${prs[$2]}" -v base="$3" '($3==loopbase && $5>0){print $1"\t"($2-1)"\t"$2"\t"mainbase""base"\t"$5"\t-";}' > \
+	awk -v mainbase="$2" -v loopbase="${prs[$2]}" -v base="$3" '($3==loopbase && $5>0){print $1"\t"($2-1)"\t"$2"\t"mainbase""base"\t"$5"\t+";}' > \
 	genome"$2""$3"."$sample_name".bed
 
 	# -
@@ -181,9 +181,9 @@ countc() {
 
 	# quantify conversions per gene
 	intersectBed -s -wa -wb -sorted -a $bed_path -b sorted.uniq.genome"$2""$3"."$sample_name".bed > "$2""$3".gfeat."$sample_name".bed
-	awk '{print $7,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$7}' OFS="\t" "$2""$3".gfeat."$sample_name".bed | \
+	awk '{print $4,$8,$12,$13,$9"_"$10"_"$11"_"$12"_"$13"_"$14"_"$8}' OFS="\t" "$2""$3".gfeat."$sample_name".bed | \
 	awk '!seen[$5]++' | \
-	awk '{a[$1"_"$2]+=$4;}END{for(i in a)print i"\t"a[i];}' > genome"$2""$3".perGene."$sample_name".txt
+	awk '{a[$1"_"$2]+=$4;}END{for(i in a)print i"\t"a[i];}' > counts"$2""$3".perGene."$sample_name".txt
 
 	# report
 	e_time="$(date -u +%s)"

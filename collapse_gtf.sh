@@ -16,7 +16,10 @@ fi
 
 cd $out_path
 cat $gtf | \
-awk -v genomic_feature=$feature -v c_offset=$offset 'BEGIN{OFS="\t";} $3==genomic_feature {print $1,$4-1,$5,genomic_feature,"1",$7,$10,$(18 + c_offset)}' | \
+awk -v genomic_feature=$feature -v c_offset=$offset 'BEGIN{OFS="\t";} $3==genomic_feature {print $1,$4-1,$5,$10,"1",$7,genomic_feature,$(18 + c_offset)}' | \
 tr -d '"|;' | \
 sortBed | \
-mergeBed -s -c 4,5,6,7,8 -o distinct,distinct,distinct,distinct,distinct > "$out_path"/"$out_file"
+groupBy -g 4,6,7,8 -c 1,2,3 -o distinct,min,max | \
+awk -v OFS='\t' '{print $5, $6, $7, $1, 1, $2, $3, $4}' > "$out_path"/"$out_file"
+#mergeBed -s -c 4,5,6,7,8 -o distinct,distinct,distinct,distinct,distinct > "$out_path"/"$out_file" 
+# ^ resulted in merging of overlapping regions that are laborous to disentangle later, use groupBy instead to keep them separate

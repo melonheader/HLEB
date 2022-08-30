@@ -1,2 +1,3 @@
-PCN.dnCaf1_Slamseq_HLEB.log
-test.log
+# things that one does not want to see in the repo
+*.log
+quickie*

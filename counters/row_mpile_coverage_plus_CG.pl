@@ -7,19 +7,19 @@ while(<>)
     
     @tmp = split(/\s+/,$_);
     @row = ();
-    next unless ($tmp[2] eq 'C' || $tmp[2] eq 'c' || $tmp[2] eq 'G' || $tmp[2] eq 'g');
+    next unless ($tmp[2] eq 'G' || $tmp[2] eq 'g' || $tmp[2] eq 'C' || $tmp[2] eq 'c');
 
 print $tmp[0],"\t",$tmp[1],"\t",$tmp[2],"\t",$tmp[3],"\t";
 
 	my $c=0;
-       if($tmp[2] eq 'C' || $tmp[2] eq 'c')
+       if($tmp[2] eq 'G' || $tmp[2] eq 'g')
 	 {
-	   	$tmp[4]=~ s/([gG])/$1; $c++/eg;
+	   	$tmp[4]=~ s/([cC])/$1; $c++/eg;
 	   
 	 }
        else
 	 {
-	   	$tmp[4]=~ s/([Cc])/$1; $c++/eg;
+	   	$tmp[4]=~ s/([Gg])/$1; $c++/eg;
 
 	 }
 

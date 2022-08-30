@@ -156,14 +156,12 @@ bash "$source_dir"/"$seq_style".genomeN.sh \
 	-b $bed_path -f $fasta_path -n $n_cores > \
 	"$out_path"/"$experiment_name"/"$seq_style".genomeN.Log &
 wait
-sed -i '/mpileup/d' "$out_path"/"$experiment_name"/"$seq_style".genomeN.Log			# remove gibberish from mpileup
 ## Count base conversions per genomic features
 bash "$source_dir"/"$seq_style".genomeNN.sh \
 	-i ${path_to_bams[@]} -o "$out_path/$experiment_name" \
 	-b $bed_path -f $fasta_path -n $n_cores > \
 	"$out_path"/"$experiment_name"/"$seq_style".genomeNN.Log &
 wait
-sed -i '/mpileup/d' "$out_path"/"$experiment_name"/"$seq_style".genomeNN.Log		# remove gibberish from mpileup
 ## Count SNPs per genomic feature
 bash "$source_dir"/genomeSNP.sh \
 	-i ${path_to_bams[@]} -o "$out_path/$experiment_name" \
@@ -171,7 +169,6 @@ bash "$source_dir"/genomeSNP.sh \
 	-n $n_cores > \
 	"$out_path"/"$experiment_name"/genomeSNP.Log &
 wait
-sed -i '/mpileup/d' "$out_path"/"$experiment_name"/genomeSNP.Log					# remove gibberish from mpileup
 # time report
 te_time="$(date -u +%s)"
 tel_s=$(($te_time - $ts_time))
