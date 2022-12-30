@@ -57,79 +57,78 @@ list(
 
 
 # TODO
-# 1. Function to generate CRs for all possible substitutions at timepoint Zero
-comp_T0NN <- function(tab_comb, base_cutoff = 14, conv_cutoff = 5) {
-  tab_comb <- tab_comb %>% filter(str_detect(stem, "T0"))
-  purrr::pmap_dfr(list(tab_comb$stem,
-                       tab_comb$path_base,
-                       tab_comb$path_conv,
-                       tab_comb$conv), 
-                  function(x, y, z, r) {
-                    sample_name = str_split_fixed(x, "_trimmed", 2) %>% `[`(, 1)
-                    grp = str_split_fixed(sample_name, "_", 2) %>% `[`(, 1)
-                    tpoint = str_split_fixed(sample_name, "_", 3) %>% `[`(, 2)
-                    br = str_split_fixed(sample_name, "_", 3) %>% `[`(, 3)
-                    t.base <- data.table::fread(y, data.table = F) %>% filter(V2 > base_cutoff)
-                    colnames(t.base) <- c("gene", "base_count")
-                    t.conv <- data.table::fread(z, data.table = F) %>% filter(V2 > conv_cutoff)
-                    colnames(t.conv) <- c("gene", "conv_count")
-                    t.merged <- inner_join(t.base, t.conv, by = "gene") %>% 
-                      mutate(conv = r,
-                             sample_name = sample_name, 
-                             group = grp, 
-                             timepoint = tpoint,
-                             b.rep = br) %>% 
-                      dplyr::select(sample_name, group, timepoint, b.rep, conv, everything())
-                    }
-                  ) -> t_out
-  return(t_out)
-}
-
-
-t.cr_T0NN <- comp_T0NN(t.p_comb)
+# 1. Function to generate CRs for all possible substitutions at timepoint Zero ---- DONE
+# 1.1. Function to plot CRs at timepoint zero ---- DONE
+# 2. Function to read in all T -> C conversions, don't forget cutoffs ---- DONE
+# 2.1.Function to filter T -> C conversions ---- DONE
+# 2.2. Function to plot CRs as boxes per TP per replicate ---- DONE
+# 2.3. Function to detect otlying replicates (KS test) ---- DONE
+# 3. Function to normalize convertions to timepoint zero and compute averages ---- DONE
+# 4. Write a script to estimate Half-lives ---- MORE EFFICIENT ---- break into bulks of trnascripts and parallelize
 
 
 
-## test how it looks like?
-ggplot(data = t.cr_T0NN %>% 
-         mutate(col_var = ifelse(conv == "TC", "red", "black")) %>% 
-         filter((conv_count / base_count) *100 < 6), 
-       aes(x = conv, y = (conv_count / base_count) *100, color = col_var)) + 
-  geom_boxplot(outlier.shape = NA) + 
-  scale_color_manual(values = c("grey30", "red"), guide = "none") +
-  stat_summary(fun.data = function(x) tibble(y = -0.85, 
-                                             label = round(mean(x), 2)), 
-               geom = "text", 
-               vjust = 1, 
-               hjust = -0.0025, 
-               angle = 90) +
-  geom_hline(yintercept = 0) +
-  #lims(y = c(0, 10)) +
-  facet_grid(group ~ b.rep) +
-  #ggforce::facet_zoom(ylim = c(0, 0.6), zoom.size = , zoom.data = ifelse(conversion != "T->C", NA, FALSE), horizontal = FALSE) +
-  theme_bw(base_size = 14) + 
-  theme(axis.text.x = element_text(angle = 45, 
-                                   hjust = 1, 
-                                   colour = c(rep("black", 10), "red", "black"))) +
-  labs(y = "Conversion rate (%)", 
-       x = "") -> check_plot
-
-
-## TO zero table
-### Load paths to test tables
-test.N <- p.in_N[[1]]
-test.NN <- p.in_NN[[1]]
-test.SNP <- p.in_SNP[[1]]
-
-### Load test tables
-t.test.N <- data.table::fread(test.N)
-t.test.NN <- data.table::fread(test.NN)
-
-
-### figure out how to sort overlapping genes
 
 
 
-# 2. Function to generate T -> C CRs for all timepoints
+
+
+
+
+
+
+
+
+
+
+
+
+
+## workflow
+t.cr_TC <- comp_TC(t.p_comb)
+plot_TC.qc_boxes(t.cr_TC)
+plot_TC.qc_ks(t.cr_TC)
+# Drop 
+# GFP: T0 br1, 
+# dnCaf1: T0 br3, T16 br 2
+filt_out <- filt_TC(t.cr_TC, 
+                    min_T0 = 2, 
+                    min_T4 = 2, 
+                    min_T8 = 0,
+                    min_T16 = 0,
+                    out_drop = c("GFP_T0_br1", "dnCaf1_T0_br1", "dnCaf1_T16_br2"))
+t.cr_TC.filt <- filt_out$tab_cr_TC.filt
+t.cr_TC.filt.norm <- norm_TC(t.cr_TC.filt)$normalised
+
+
+
+
+
+
+
+
+
+## Try two strategies ----
+#### first normalize, then average
+### test how many genes we will have in approach number one ---- NE IMEET SMISLAs
+t.cr_TC.filt %>% 
+  dplyr::select(-sample_name, -contains("count"), -cr_perc, -conv) %>% 
+  mutate(n = 1) %>% 
+  pivot_wider(., names_from = timepoint, values_from = n, values_fill = 0) %>% 
+  mutate(n_sum = T0 + T4 + T8 + T16) -> rep_test
+rep_test %>% filter(T0 != 0) %>%  tabyl(b.rep, n_sum, group) ### looks surprisingly okay ---- proceed with 3 TP minimum
+
+
+
+## Overall, USE A NOTEBOOK
+
+
+
+
+
+
+
+
+
 
 

@@ -84,7 +84,7 @@ estimate_hl <- function(project,
                       Pred_Conv_Rate_Norm_UpInt = p.int[, 3])
       
       ## we cannot reliably estiamte error for half-lives that reach above 24 hours
-      ## my approach was inherently wrong -- use linear interpolation
+      ## use linear interpolation for error estimation
       # y = a*e^(b*T) + c -> ln(y - c) = b*T + ln(a) -> T = (ln(y - c) - ln(a)) / b
       ## new fit
       slope <- function(x, y) {

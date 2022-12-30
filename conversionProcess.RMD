@@ -1,0 +1,124 @@
+---
+title: "conversionProcess"
+author: "ab"
+date: '2022-09-08'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+
+## Process a SLAMSEQ experiment
+### Load data in
+```{r}
+run_name <- "PCN.ThreeWay_Slamseq"
+## Path to conversions
+p.in <- file.path("/local/artem/Projects/Stability/Results/Slamseq_runs", run_name, "conversions/")
+v.bases <- c("A", "C", "T", "G")
+p.in_N <- purrr::map(v.bases,
+                     ~ list.files(file.path(p.in, "genomeN", .x), pattern = "*perGene*", full.names = T)) %>% 
+  purrr::reduce(., c)
+p.in_NN <- purrr::map(v.bases,
+                      ~ list.files(file.path(p.in, "genomeNN", .x), pattern = "*perGene*", full.names = T)) %>% 
+  purrr::reduce(., c)
+p.in_SNP <- list.files(file.path(p.in, "SNPs"), pattern = "*perGene*", full.names = T)
+
+
+## assemble path table to ease the future sample selections
+list(
+  purrr::map_dfr(p.in_N,
+                 ~ tibble(stem = str_split_fixed(basename(.x), "perGene.", 2)[, 2] %>% str_remove(., ".txt"),
+                          base = str_split_fixed(basename(.x), ".perGene", 2)[, 1] %>% str_remove(., "counts"),
+                          path_base = .x)),
+  purrr::map_dfr(p.in_NN,
+                 ~ tibble(stem = str_split_fixed(basename(.x), "perGene.", 2)[, 2] %>% str_remove(., ".txt"),
+                          conv = str_split_fixed(basename(.x), ".perGene", 2)[, 1] %>% str_remove(., "genome|counts"),
+                          path_conv = .x,
+                          base = str_sub(conv, 1, 1))),
+  purrr::map_dfr(p.in_SNP,
+                 ~ tibble(stem = str_split_fixed(basename(.x), "perGene.", 2)[, 2] %>% str_remove(., ".txt"),
+                      snp = str_split_fixed(basename(.x), ".perGene", 2)[, 1] %>% str_remove(., "genome|counts"),
+                      path_snp = .x,
+                      base = str_sub(snp, 1, 1)))
+  ) %>% 
+  purrr::reduce(., left_join, by = c("stem", "base")) %>% 
+  filter(is.na(snp) | (snp == conv)) -> t.p_comb
+## clean sample names
+t.p_comb <- t.p_comb %>% mutate(stem = str_split_fixed(stem, "_S", 2)[, 1])
+
+```
+## work only with protein coding genes; exclue miRs, exclue lncRNA
+```{r}
+mm10_gnames <- read_tsv("/local/shared_scripts/database/mm10/slam_annot/Mus_musculus.GRCm38.96_geneNames.tsv")
+mm10_lncRNA <- read_json("/local/artem/Data/Annotations/essential lncRNA.json", simplifyVector = T) %>% filter(Organism == "Mouse")
+```
+
+
+## Check conversion rates at T0 
+```{r, fig.height=6,  warning=FALSE}
+t.cr_T0 <- comp_T0NN(tab_comb = t.p_comb)
+## keep only protein coding genes
+t.cr_T0 <- t.cr_T0 %>% 
+  filter(conv_count > snp_count) %>% 
+  mutate(gene_name = str_split_fixed(gene, "_", 2)[, 2]) %>% 
+  filter(gene_name %in% mm10_gnames[mm10_gnames$gene_biotype == "protein_coding", ]$gene_name,
+         str_detect(gene_name, "^Mir", negate = T),
+         !gene_name %in% mm10_lncRNA$Name) %>% 
+  dplyr::select(-gene_name)
+##
+plot_TONN.qc(t.cr_T0, percent_limit = 7)
+```
+## Check T -> C conversions
+```{r}
+t.cr_TC <- comp_TC(t.p_comb)
+## keep only protein coding genes
+t.cr_TC <- t.cr_TC %>% 
+  filter(conv_count > snp_count) %>% 
+  mutate(gene_name = str_split_fixed(gene, "_", 2)[, 2]) %>% 
+  filter(gene_name %in% mm10_gnames[mm10_gnames$gene_biotype == "protein_coding", ]$gene_name,
+         str_detect(gene_name, "^Mir", negate = T),
+         !gene_name %in% mm10_lncRNA$Name) %>% 
+  dplyr::select(-gene_name)
+```
+
+```{r, warning=FALSE}
+plot_TC.qc_boxes(t.cr_TC, 
+                 y_lims = c(0, 8))
+```
+
+```{r, fig.width=8, warning=FALSE}
+plot_TC.qc_ks(t.cr_TC)
+```
+
+## Filter
+```{r}
+# dnCaf1: T0 br3, T16 br 2
+filt_out <- filt_TC(t.cr_TC, 
+                    min_T0 = 2, 
+                    min_T4 = 2, 
+                    min_T8 = 2,
+                    min_T16 = 1,
+                    out_drop = c("Cyto_T0_Rep3", "Cyto_T0_Rep4", "Nuc_T0_Rep4", "Nuc_T8_Rep4", "Pro_T4_Rep3"))
+t.cr_TC.filt <- filt_out$tab_cr_TC.filt
+```
+
+## Check the number of genes left after filtering
+```{r}
+purrr::map(split(filt_out$filt_stats$obs_T, filt_out$filt_stats$obs_T$group),
+           ~ sum(!.x$dropped))
+```
+## Normalize conversions & estimate half-lives
+```{r}
+# After all, it is better to normalize each individual replciate to an average of T0
+t.cr_TC.filt.norm <- norm_TC(t.cr_TC.filt)
+t.hl_tw <- estimate_HL(t.cr_TC.filt.norm,
+                       n_cores = 12, 
+                       out_path = "/local/artem/Projects/Stability/Results/Slamseq_runs/PCN.ThreeWay_Slamseq/")
+```
+
+## Assess the results
+```{r}
+
+```
+

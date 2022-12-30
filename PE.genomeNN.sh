@@ -149,13 +149,18 @@ countc() {
 	s_time="$(date -u +%s)"
 	# get bam basename and sample_name
 	bam_file="$(basename -- $1)"
-	sample_name="${bam_file%_S*}"
+	sample_name="${bam_file%_trimmed*}"
 	echo "Processing sample $sample_name....."
 	echo "Counting $2 > $3 conversions....."
 	if [[ ! -d "./$2" ]]; then
 		mkdir "./$2"
 	fi
 	cd $2
+	## check if the conversion was processed before
+	if [[ -f "counts$2$3.perGene.$sample_name.txt" ]]; then
+		echo "$2 to $3 in $sample_name already processed"
+		return 0
+	fi 
 	#first mate, fw T -
 	samtools view -f 99 -b -h -L $bed_path $1 | \
 	samtools mpileup -A -B -Q 27 -d 1000000 -f $fasta_path - | \

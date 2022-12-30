@@ -159,7 +159,7 @@ call_snp () {
 	s_time="$(date -u +%s)"
 	# get bam basename and sample_name
 	bam_file="$(basename -- $1)"
-	sample_name="${bam_file%_S*}"
+	sample_name="${bam_file%_trimmed*}"
 	echo "Processing sample $sample_name....."
 
 	samtools mpileup -B -A -q 255 -f $fasta_path $1 | \

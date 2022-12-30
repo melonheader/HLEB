@@ -148,13 +148,20 @@ countb () {
 	s_time="$(date -u +%s)"
 	# get bam basename and sample_name
 	bam_file="$(basename -- $1)"
-	sample_name="${bam_file%_S*}"
+	sample_name="${bam_file%_trimmed*}"
 	echo "Processing sample $sample_name....."
 	echo "Counting $2 background bases....."
 	if [[ ! -d "./$2" ]]; then
 		mkdir "./$2"
 	fi
 	cd $2
+
+	## check if the conversion was processed before
+	if [[ -f "counts$2.perGene.$sample_name.txt" ]]; then
+		echo "$2 in $sample_name already processed"
+		return 0
+	fi
+
 	#first mate, fw T -
 	samtools view -f 99 -b -h -L $bed_path $1 | \
 	samtools mpileup -A -B -Q 1 -d 1000000 -f $fasta_path - | \
@@ -210,13 +217,15 @@ for x in ${path_to_bams[@]}; do
 	# loop over background bases
 	for y in ${!bloop[@]}; do
 		## for timepoints after 0h only do T
-		if echo $x | grep -q -v T0 && [ $y != "T" ]; then
+		if echo $x | grep -q -v T0 && [ $y != "T" ]
+		then
 			continue
-		fi
-		(
+		else
+			(
 			countb $x $y
-		) &
-		# allow parallel execution of N jobs
+			) &
+		fi
+		## allow parallel execution of N jobs
 		if [[ $(jobs -r -p | wc -l) -gt $((n_cores - 1))  ]]; then
 			# wait for a batch to finish
 			wait

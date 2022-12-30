@@ -148,7 +148,7 @@ countc() {
 	s_time="$(date -u +%s)"
 	# get bam basename and sample_name
 	bam_file="$(basename -- $1)"
-	sample_name="${bam_file%_S*}"
+	sample_name="${bam_file%_trimmed*}"
 	echo "Processing sample $sample_name....."
 	echo "Counting $2 > $3 conversions....."
 	if [[ ! -d "./$2" ]]; then
@@ -156,18 +156,24 @@ countc() {
 	fi
 	cd $2
 
-	# +
-	samtools view -f 16 -b -h -L $bed_path $1 | \
-	samtools mpileup -A -B -Q 27 -d 1000000 -f $fasta_path - | \
-	${cntr_path}/row_mpile_coverage_plus_"$2""$3".pl | \
-	awk -v mainbase="$2" -v loopbase="${prs[$2]}" -v base="$3" '($3==loopbase && $5>0){print $1"\t"($2-1)"\t"$2"\t"mainbase""base"\t"$5"\t+";}' > \
-	genome"$2""$3"."$sample_name".bed
+	## check if the conversion was processed before
+	if [[ -f "counts$2$3.perGene.$sample_name.txt" ]]; then
+		echo "$2 to $3 in $sample_name already processed"
+		return 0
+	fi
 
 	# -
 	samtools view -F 16 -b -h -L $bed_path $1 | \
 	samtools mpileup -A -B -Q 27 -d 1000000 -f $fasta_path - | \
 	${cntr_path}/row_mpile_coverage_plus_"$2""$3".pl | \
-	awk -v mainbase="$2" -v loopbase="${prs[$2]}" -v base="$3" '($3==loopbase && $5>0){print $1"\t"($2-1)"\t"$2"\t"mainbase""base"\t"$5"\t-";}' >> \
+	awk -v mainbase="$2" -v loopbase="${prs[$2]}" -v base="$3" '($3==loopbase && $5>0){print $1"\t"($2-1)"\t"$2"\t"mainbase""base"\t"$5"\t-";}' > \
+	genome"$2""$3"."$sample_name".bed
+
+	# +
+	samtools view -f 16 -b -h -L $bed_path $1 | \
+	samtools mpileup -A -B -Q 27 -d 1000000 -f $fasta_path - | \
+	${cntr_path}/row_mpile_coverage_plus_"$2""$3".pl | \
+	awk -v mainbase="$2" -v loopbase="$2" -v base="$3" '($3==loopbase && $5>0){print $1"\t"($2-1)"\t"$2"\t"mainbase""base"\t"$5"\t+";}' >> \
 	genome"$2""$3"."$sample_name".bed
 	
 	# filter unique
@@ -222,12 +228,14 @@ for x in ${path_to_bams[@]}; do
 		# loop over subtitutions bases
 		for z in ${lbloop[@]}; do
 			## for timepoints after 0h only do T -> C
-			if echo $x | grep -q -v T0 && [ $y != "T" ] && [ $z != "C" ]; then
+			if echo $x | grep -q -v T0 && [ $y != "T" ] && [ $z != "C" ]
+			then
 				continue
-			fi
-			(
+			else
+				(
 				countc $x $y $z
-			) &
+				) &
+			fi
 			# allow parallel execution of only N jobs
 			if [[ $(jobs -r -p | wc -l) -gt $((n_cores - 1)) ]]; then
         		# wait a batch to finish
