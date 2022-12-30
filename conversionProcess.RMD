@@ -116,9 +116,3 @@ t.hl_tw <- estimate_HL(t.cr_TC.filt.norm,
                        n_cores = 12, 
                        out_path = "/local/artem/Projects/Stability/Results/Slamseq_runs/PCN.ThreeWay_Slamseq/")
 ```
-
-## Assess the results
-```{r}
-
-```
-
