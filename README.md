@@ -1,7 +1,7 @@
 <img src="hex-HLEB.png" align="left" alt="logo" width="300" style = "border: none; float: center ;">
 
 # Half-Life Estimation in a Batch (HLEB)
-Repository contains an array of scripts and tools to count base conversion rates from bam files obtaiend from a [Slamseq](https://www.nature.com/articles/nmeth.4435) run.
+Repository contains an array of scripts and tools to count base conversion rates from bam files obtained from a [Slamseq](https://www.nature.com/articles/nmeth.4435) run.
 
 ## Default approach
 To run the whole pipeline, one needs to execute ```Master.sh``` script. Run ```bash Master.sh --help``` to get an overview of the available options and arguments.
