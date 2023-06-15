@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8042333.svg)](https://doi.org/10.5281/zenodo.8042333)
 <img src="hex-HLEB.png" align="left" alt="logo" width="300" style = "border: none; float: center ;">
 
 # Half-Life Estimation in a Batch (HLEB)
